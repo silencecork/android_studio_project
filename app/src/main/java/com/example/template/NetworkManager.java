@@ -1,4 +1,4 @@
-package template.demo.example.com.applicationtemplate;
+package com.example.template;
 
 import android.content.Context;
 

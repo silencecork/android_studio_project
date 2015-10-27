@@ -1,4 +1,4 @@
-package template.demo.example.com.applicationtemplate;
+package com.example.template;
 
 /**
  * Created by Justin on 15/10/27.

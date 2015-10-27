@@ -1,4 +1,4 @@
-package template.demo.example.com.applicationtemplate;
+package com.example.template;
 
 import android.app.ProgressDialog;
 import android.net.Uri;
@@ -19,13 +19,17 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
+import com.google.gson.Gson;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -58,31 +62,60 @@ public class MainActivity extends AppCompatActivity {
         NetworkManager.getInstance(this).request(null, request);
     }
 
+    // java -jar jsonschema2pojo-cli-0.4.15.jar -s ./test.json -a GSON -da -D -S -E -p com.example.template -T -A none JSON -t ../
     private Response.Listener<String> mOnCompleteListener = new Response.Listener<String>() {
         @Override
         public void onResponse(String s) {
             try {
-                JSONObject json = new JSONObject(s);
-                JSONObject responseData = json.optJSONObject("responseData");
-                if (responseData != null) {
-                    JSONArray array = responseData.optJSONArray("results");
-                    int size = array.length();
-                    ArrayList<Model> list = new ArrayList<Model>();
-                    for (int i = 0; i < size; i++) {
-                        JSONObject jsonObj = array.optJSONObject(i);
-                        Model model = new Model();
-                        model.title = jsonObj.optString("titleNoFormatting");
-                        model.description = jsonObj.optString("contentNoFormatting");
-                        model.imageURL = jsonObj.optString("url");
+                ArrayList<Model> list = new ArrayList<Model>();
+                Gson gson = new Gson();
+                Test test = gson.fromJson(s, Test.class);
 
-                        list.add(model);
+
+                ArrayList<String> dataListFieldNameList = new ArrayList<String>();
+                String dataListFieldName = getString(R.string.field_data_list);
+
+                String[] dataListFieldSplitted = dataListFieldName.split("\\.");
+                for (String split : dataListFieldSplitted) {
+                    dataListFieldNameList.add(split);
+                }
+
+                try {
+                    Iterator<String> itr = dataListFieldNameList.iterator();
+                    Object instance = null;
+                    while (itr.hasNext()) {
+                        String fieldName = itr.next();
+                        if (instance == null) {
+                            Field f = Test.class.getField(fieldName);
+                            instance = f.get(test);
+                        } else {
+                            Field f = instance.getClass().getField(fieldName);
+                            instance = f.get(instance);
+                        }
                     }
 
+                    List<Object> resultList = (List<Object>) instance;
+
+                    for (Object result : resultList) {
+                        Field titleField = result.getClass().getField(getString(R.string.field_title));
+                        Field descField = result.getClass().getField(getString(R.string.field_desc));
+                        Field iconField = result.getClass().getField(getString(R.string.field_icon));
+                        Model model = new Model();
+                        model.title = (String) titleField.get(result);
+                        model.description = (String) descField.get(result);
+                        model.imageURL = (String) iconField.get(result);
+                        list.add(model);
+                    }
                     ListViewAdapter adapter = new ListViewAdapter(list);
                     mListView.setAdapter(adapter);
+
+                } catch (NoSuchFieldException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
                 }
-            } catch (JSONException e) {
-                e.printStackTrace();
+
+
             } finally {
                 if (mProgressDialog != null) {
                     mProgressDialog.dismiss();
