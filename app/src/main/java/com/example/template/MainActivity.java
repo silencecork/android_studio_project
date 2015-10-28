@@ -1,13 +1,11 @@
 package com.example.template;
 
 import android.app.ProgressDialog;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -21,10 +19,6 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.google.gson.Gson;
 import com.squareup.picasso.Picasso;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -75,16 +69,28 @@ public class MainActivity extends AppCompatActivity {
                 ArrayList<String> dataListFieldNameList = new ArrayList<String>();
                 String dataListFieldName = getString(R.string.field_data_list);
 
+                if (TextUtils.isEmpty(dataListFieldName)) {
+                    Log.e(TAG, "not specified data field");
+                    return;
+                }
+
                 String[] dataListFieldSplitted = dataListFieldName.split("\\.");
-                for (String split : dataListFieldSplitted) {
-                    dataListFieldNameList.add(split);
+                if (dataListFieldSplitted != null && dataListFieldSplitted.length > 0) {
+                    for (String split : dataListFieldSplitted) {
+                        dataListFieldNameList.add(split);
+                    }
+                } else {
+                    dataListFieldNameList.add(dataListFieldName);
                 }
 
                 try {
                     Iterator<String> itr = dataListFieldNameList.iterator();
                     Object instance = null;
+                    StringBuilder debug = new StringBuilder();
                     while (itr.hasNext()) {
                         String fieldName = itr.next();
+                        debug.append(fieldName);
+                        debug.append(" ");
                         if (instance == null) {
                             Field f = Test.class.getField(fieldName);
                             instance = f.get(test);
@@ -94,16 +100,39 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
 
+                    if (instance == null) {
+                        Log.e(TAG, "can not instance data field " + debug.toString());
+                        return;
+                    }
+
                     List<Object> resultList = (List<Object>) instance;
 
+                    String titleFieldName = getString(R.string.field_title);
+                    String descFieldName = getString(R.string.field_desc);
+                    String iconFieldName = getString(R.string.field_icon);
+
                     for (Object result : resultList) {
-                        Field titleField = result.getClass().getField(getString(R.string.field_title));
-                        Field descField = result.getClass().getField(getString(R.string.field_desc));
-                        Field iconField = result.getClass().getField(getString(R.string.field_icon));
                         Model model = new Model();
-                        model.title = (String) titleField.get(result);
-                        model.description = (String) descField.get(result);
-                        model.imageURL = (String) iconField.get(result);
+                        if (TextUtils.isEmpty(titleFieldName)) {
+                            model.title = "";
+                        } else {
+                            Field titleField = result.getClass().getField(titleFieldName);
+                            model.title = (String) titleField.get(result);
+                        }
+
+                        if (TextUtils.isEmpty(descFieldName)) {
+                            model.description = "";
+                        } else {
+                            Field descField = result.getClass().getField(descFieldName);
+                            model.description = (String) descField.get(result);
+                        }
+
+                        if (TextUtils.isEmpty(iconFieldName)) {
+                            model.imageURL = "";
+                        } else {
+                            Field iconField = result.getClass().getField(iconFieldName);
+                            model.imageURL = (String) iconField.get(result);
+                        }
                         list.add(model);
                     }
                     ListViewAdapter adapter = new ListViewAdapter(list);
@@ -170,7 +199,9 @@ public class MainActivity extends AppCompatActivity {
 
             int photoSize = parent.getContext().getResources().getDimensionPixelSize(R.dimen.icon_size);
 
-            Picasso.with(parent.getContext()).load(data.imageURL).placeholder(R.drawable.ic_default).resize(photoSize, photoSize).centerCrop().into(icon);
+            if (!TextUtils.isEmpty(data.imageURL)) {
+                Picasso.with(parent.getContext()).load(data.imageURL).placeholder(R.drawable.ic_default).resize(photoSize, photoSize).centerCrop().into(icon);
+            }
 
             return convertView;
         }
