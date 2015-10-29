@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 ArrayList<Model> list = new ArrayList<Model>();
                 Gson gson = new Gson();
-                Test test = gson.fromJson(s, Test.class);
+                Sample test = gson.fromJson(s, Sample.class);
 
 
                 ArrayList<String> dataListFieldNameList = new ArrayList<String>();
