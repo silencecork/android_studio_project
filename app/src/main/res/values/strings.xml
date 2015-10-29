@@ -6,8 +6,5 @@
     <string name="api">"https://ajax.googleapis.com/ajax/services/search/images?v=1.0"</string>
     <string name="parameters">q=taipei101&amp;rsz=8</string>
     <string name="paging">start=%1$d</string>
-    <string name="field_title">title</string>
-    <string name="field_desc">contentNoFormatting</string>
-    <string name="field_icon">url</string>
-    <string name="field_data_list">responseData.results</string>
+
 </resources>

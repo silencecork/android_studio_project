@@ -1,4 +1,4 @@
-package com.example.template;
+    package com.example.template;
 
 import android.app.ProgressDialog;
 import android.os.Bundle;
@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
                         debug.append(fieldName);
                         debug.append(" ");
                         if (instance == null) {
-                            Field f = Test.class.getField(fieldName);
+                            Field f = Sample.class.getField(fieldName);
                             instance = f.get(test);
                         } else {
                             Field f = instance.getClass().getField(fieldName);

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="field_title">title</string>
+    <string name="field_desc">contentNoFormatting</string>
+    <string name="field_icon">url</string>
+    <string name="field_data_list">responseData.results</string>
+</resources>
