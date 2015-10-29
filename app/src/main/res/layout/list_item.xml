@@ -37,6 +37,7 @@
         android:layout_marginBottom="5dp"
         android:textSize="16sp"
         android:textColor="#999"
+        android:singleLine="true"
         android:text="description of image"
         android:layout_alignBottom="@id/icon"
         android:layout_toRightOf="@id/icon"/>

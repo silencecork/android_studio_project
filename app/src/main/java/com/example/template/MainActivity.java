@@ -1,4 +1,4 @@
-    package com.example.template;
+package com.example.template;
 
 import android.app.ProgressDialog;
 import android.os.Bundle;
@@ -12,6 +12,7 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -20,7 +21,9 @@ import com.android.volley.toolbox.StringRequest;
 import com.google.gson.Gson;
 import com.squareup.picasso.Picasso;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -44,19 +47,72 @@ public class MainActivity extends AppCompatActivity {
         if (isReload) {
             mProgressDialog = ProgressDialog.show(this, "", "Please wait", true, false);
         }
-        String api = getString(R.string.api);
+        String api = null;
+        try {
+            api = URLDecoder.decode(getString(R.string.api), "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
         StringBuilder builder = new StringBuilder(api);
-        builder.append("&");
-        builder.append(getString(R.string.parameters));
-        builder.append("&");
-        builder.append(getString(R.string.paging, page));
+        if (!TextUtils.isEmpty(getString(R.string.parameters))) {
+            builder.append("&");
+            builder.append(getString(R.string.parameters));
+        }
+        if (!TextUtils.isEmpty(getString(R.string.paging, page))) {
+            builder.append("&");
+            builder.append(getString(R.string.paging, page));
+        }
         Log.d(TAG, "api " + builder.toString());
 
         StringRequest request = new StringRequest(Request.Method.GET, builder.toString(), mOnCompleteListener, mOnErrorListener);
         NetworkManager.getInstance(this).request(null, request);
     }
 
-    // java -jar jsonschema2pojo-cli-0.4.15.jar -s ./test.json -a GSON -da -D -S -E -p com.example.template -T -A none JSON -t ../
+    private Object findInstance(String fieldName, Object baseObject) {
+        if (TextUtils.isEmpty(fieldName)) {
+            return null;
+        }
+        ArrayList<String> fieldNameList = new ArrayList<String>();
+        String[] fieldSplitted = fieldName.split("\\.");
+        if (fieldSplitted != null && fieldSplitted.length > 0) {
+            for (String split : fieldSplitted) {
+                int lodashIndex = split.indexOf("_");
+                if (lodashIndex > 0) {
+                    String preFix = split.substring(0, lodashIndex);
+                    String postFix = split.substring(lodashIndex + 1, split.length());
+                    char[] stringArray = postFix.trim().toCharArray();
+                    stringArray[0] = Character.toUpperCase(stringArray[0]);
+                    postFix = new String(stringArray);
+                    split = preFix + postFix;
+                }
+                fieldNameList.add(split);
+            }
+        } else {
+            fieldNameList.add(fieldName);
+        }
+
+        Iterator<String> itr = fieldNameList.iterator();
+        Object instance = null;
+        try {
+            while (itr.hasNext()) {
+                String field = itr.next();
+                if (instance == null) {
+                    Field f = baseObject.getClass().getField(field);
+                    instance = f.get(baseObject);
+                } else {
+                    Field f = instance.getClass().getField(field);
+                    instance = f.get(instance);
+                }
+            }
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        return instance;
+    }
+
     private Response.Listener<String> mOnCompleteListener = new Response.Listener<String>() {
         @Override
         public void onResponse(String s) {
@@ -65,86 +121,56 @@ public class MainActivity extends AppCompatActivity {
                 Gson gson = new Gson();
                 Sample test = gson.fromJson(s, Sample.class);
 
-
-                ArrayList<String> dataListFieldNameList = new ArrayList<String>();
                 String dataListFieldName = getString(R.string.field_data_list);
-
                 if (TextUtils.isEmpty(dataListFieldName)) {
                     Log.e(TAG, "not specified data field");
                     return;
                 }
 
-                String[] dataListFieldSplitted = dataListFieldName.split("\\.");
-                if (dataListFieldSplitted != null && dataListFieldSplitted.length > 0) {
-                    for (String split : dataListFieldSplitted) {
-                        dataListFieldNameList.add(split);
-                    }
-                } else {
-                    dataListFieldNameList.add(dataListFieldName);
+                Object instance = findInstance(dataListFieldName, test);
+                if (instance == null) {
+                    Log.e(TAG, "can not instance data field ");
+                    return;
                 }
 
-                try {
-                    Iterator<String> itr = dataListFieldNameList.iterator();
-                    Object instance = null;
-                    StringBuilder debug = new StringBuilder();
-                    while (itr.hasNext()) {
-                        String fieldName = itr.next();
-                        debug.append(fieldName);
-                        debug.append(" ");
-                        if (instance == null) {
-                            Field f = Sample.class.getField(fieldName);
-                            instance = f.get(test);
+                List<Object> resultList = (List<Object>) instance;
+
+                String titleFieldName = getString(R.string.field_title);
+                String descFieldName = getString(R.string.field_desc);
+                String iconFieldName = getString(R.string.field_icon);
+
+                for (Object result : resultList) {
+                    Model model = new Model();
+                    Object titleInstance = findInstance(titleFieldName, result);
+                    if (titleInstance != null) {
+                        if (titleInstance instanceof List) {
+                            model.title = ((List) titleInstance).get(0).toString();
                         } else {
-                            Field f = instance.getClass().getField(fieldName);
-                            instance = f.get(instance);
+                            model.title = titleInstance.toString();
                         }
                     }
 
-                    if (instance == null) {
-                        Log.e(TAG, "can not instance data field " + debug.toString());
-                        return;
+                    Object descInstance = findInstance(descFieldName, result);
+                    if (descInstance != null) {
+                        if (descInstance instanceof List) {
+                            model.description = ((List) descInstance).get(0).toString();
+                        } else {
+                            model.description = descInstance.toString();
+                        }
                     }
 
-                    List<Object> resultList = (List<Object>) instance;
-
-                    String titleFieldName = getString(R.string.field_title);
-                    String descFieldName = getString(R.string.field_desc);
-                    String iconFieldName = getString(R.string.field_icon);
-
-                    for (Object result : resultList) {
-                        Model model = new Model();
-                        if (TextUtils.isEmpty(titleFieldName)) {
-                            model.title = "";
+                    Object iconInstance = findInstance(iconFieldName, result);
+                    if (iconInstance != null) {
+                        if (iconInstance instanceof List) {
+                            model.imageURL = ((List) iconInstance).get(0).toString();
                         } else {
-                            Field titleField = result.getClass().getField(titleFieldName);
-                            model.title = (String) titleField.get(result);
+                            model.imageURL = iconInstance.toString();
                         }
-
-                        if (TextUtils.isEmpty(descFieldName)) {
-                            model.description = "";
-                        } else {
-                            Field descField = result.getClass().getField(descFieldName);
-                            model.description = (String) descField.get(result);
-                        }
-
-                        if (TextUtils.isEmpty(iconFieldName)) {
-                            model.imageURL = "";
-                        } else {
-                            Field iconField = result.getClass().getField(iconFieldName);
-                            model.imageURL = (String) iconField.get(result);
-                        }
-                        list.add(model);
                     }
-                    ListViewAdapter adapter = new ListViewAdapter(list);
-                    mListView.setAdapter(adapter);
-
-                } catch (NoSuchFieldException e) {
-                    e.printStackTrace();
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+                    list.add(model);
                 }
-
-
+                ListViewAdapter adapter = new ListViewAdapter(list);
+                mListView.setAdapter(adapter);
             } finally {
                 if (mProgressDialog != null) {
                     mProgressDialog.dismiss();
@@ -156,7 +182,10 @@ public class MainActivity extends AppCompatActivity {
     private Response.ErrorListener mOnErrorListener = new Response.ErrorListener() {
         @Override
         public void onErrorResponse(VolleyError volleyError) {
-
+            Toast.makeText(MainActivity.this, "Error happened!", Toast.LENGTH_LONG).show();
+            if (mProgressDialog != null) {
+                mProgressDialog.dismiss();
+            }
         }
     };
 
