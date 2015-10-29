@@ -53,18 +53,9 @@ public class MainActivity extends AppCompatActivity {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
-        StringBuilder builder = new StringBuilder(api);
-        if (!TextUtils.isEmpty(getString(R.string.parameters))) {
-            builder.append("&");
-            builder.append(getString(R.string.parameters));
-        }
-        if (!TextUtils.isEmpty(getString(R.string.paging, page))) {
-            builder.append("&");
-            builder.append(getString(R.string.paging, page));
-        }
-        Log.d(TAG, "api " + builder.toString());
+        Log.d(TAG, "api " + api);
 
-        StringRequest request = new StringRequest(Request.Method.GET, builder.toString(), mOnCompleteListener, mOnErrorListener);
+        StringRequest request = new StringRequest(Request.Method.GET, api, mOnCompleteListener, mOnErrorListener);
         NetworkManager.getInstance(this).request(null, request);
     }
 
